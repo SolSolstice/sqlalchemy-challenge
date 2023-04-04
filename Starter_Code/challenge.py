@@ -41,6 +41,7 @@ app = Flask(__name__)
 
 
 last12mo = dt.date(2017,8,23) - dt.timedelta(days = 365)
+
 sel_list = [measurement.date,measurement.prcp] 
 #main home-> query for precip,station,tobs, starting day for tobs, starting & ending dates for tobs 
 # starting & ending dates -> form of sttring . mm - dd -yyyy
@@ -54,6 +55,7 @@ def home():
             f"/precipitation<br>"
             f"/stations<br>"
             f"/temperatures observed<br>"
+            f"/start<br>"
             f"/start & end<br>"
             )
 
@@ -69,28 +71,90 @@ def home():
 
 
 def precip():
-    return sel_list
-   # session = Session(engine)
-   # last12mo = dt.date(2017,8,23) - dt.timedelta(days = 365)
 
-   # results = session.query(measurement.date,measurement.prcp).filter(measurement.date >= last12mo).all()
-   # resultlist = []
-   # for result in results:
-   #     precipdict = {}
-   #     precipdict["date"] = result["date"]
-   #     precipdict["prcp"] = result["prcp"]
-   #     resultlist.append(precipdict)
-   #     return jsonify(precipdict)
 
+    # Query for the date and precipitation for the last year
  
+    last12mo = dt.date(2017,8,23) - dt.timedelta(days = 365)
 
+    results = session.query(measurement.date,
+                            measurement.prcp).\
+                                filter(measurement.date >= last12mo).all()
+    session.close()
+    resultlist = []
+    for result in results:
+        precipdict = {}
+        precipdict["date"] = result["date"]
+        precipdict["prcp"] = result["prcp"]
+        resultlist.append(precipdict)
+    return jsonify(resultlist)
 
 
 
 # stations route -> query of all station in stations table 
     #               -> jsonify results & "unravel" using numpy 
+@app.route("/stations")
+
+def stations():
+    session = Session(engine)
+    station_results = session.query(station.station).all()
+    session.close()
+    all_stations = list(np.ravel(station_results))
+    return jsonify(all_stations)
+
+
+
 # tobs -> calc previous year w/ time delta
 #           -> calc out your measurements for 1 station over previous year
+@app.route("/tobs")
+def tobs():
+    session = Session(engine)
+
+    last12mo = dt.date(2017,8,23) - dt.timedelta(days = 365)
+    temps_12mo = session.query(measurement.date,
+                               measurement.tobs).filter(measurement.station == 'USC00519281').\
+                                filter(measurement.date >= last12mo).all()
+    session.close()
+
+    resultlist = []
+    for result in temps_12mo:
+        tempsdict = {}
+        tempsdict['date'] = result['date']
+        tempsdict['tobs'] = result['tobs']
+        resultlist.append(tempsdict)
+    return jsonify(resultlist)
+
+    
+@app.route("/start")
+def start():
+    session = Session(engine)
+    last12mo = dt.date(2017,8,23) - dt.timedelta(days = 365)
+    sel_list = [
+        measurement.date,
+        session.query(func.min(measurement.tobs)),
+        session.query(func.max(measurement.tobs)),
+        session.query(func.avg(measurement.tobs))
+    ]
+    start_aggs = session.query(*sel_list).filter(measurement.station == 'USC00519281').filter(measurement.date >= last12mo).all()
+
+    #start_min = session.query(func.min(measurement.tobs).filter(measurement.station == 'USC00519281').\
+    #                          filter(measurement.date >= last12mo).all()
+    #start_max = session.query(func.max(measurement.tobs).filter(measurement.station == 'USC00519281').\
+    #                          filter(measurement.date >= last12mo).all().all()
+    #start_avg = session.query(func.avg(measurement.tobs).filter(measurement.station == 'USC00519281').\
+    #                          filter(measurement.date >= last12mo).all().all()                            
+                            
+    session.close()
+
+    #for result in resultlist: 
+        #aggsdict = {}
+        #aggsdict= result['tobs']
+        #resultlist.append(aggsdict)
+    return jsonify(start_aggs)
+
+
+
+
 
 # combine start date (first variable) & start&end date (also variables)
     #     -> have func called to aggs (min, max, avg) of tobs 
