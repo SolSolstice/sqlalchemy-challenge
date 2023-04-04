@@ -43,9 +43,9 @@ app = Flask(__name__)
 last12mo = dt.date(2017,8,23) - dt.timedelta(days = 365)
 
 sel_list = [measurement.date,measurement.prcp] 
-#main home-> query for precip,station,tobs, starting day for tobs, starting & ending dates for tobs 
-# starting & ending dates -> form of sttring . mm - dd -yyyy
-@app.route("/")   
+
+@app.route("/")  
+
 def home():
     print ("server attempting to go to home page...")
                                      # prints in output console 
@@ -55,25 +55,19 @@ def home():
             f"/precipitation<br>"
             f"/stations<br>"
             f"/temperatures observed<br>"
-            f"/start<br>"
-            f"/start & end<br>"
+            f"/api/v1.0/start<br>"
+            f"/start/end<br>"
+            f""
             )
-
-#results = session.query(measurement.date,measurement.prcp).filter(measurement.date >= last12mo).all()
-
-#percep_12mo = session.query(measurement.date,measurement.prcp).filter(measurement.date >= last12mo)
 
 
           
-# preciptation route -> route that calcs tobs from prev year 
-    #                   -> jsonify results & display as return
 @app.route("/precipitation")
 
 
 def precip():
 
 
-    # Query for the date and precipitation for the last year
  
     last12mo = dt.date(2017,8,23) - dt.timedelta(days = 365)
 
@@ -91,8 +85,6 @@ def precip():
 
 
 
-# stations route -> query of all station in stations table 
-    #               -> jsonify results & "unravel" using numpy 
 @app.route("/stations")
 
 def stations():
@@ -104,8 +96,6 @@ def stations():
 
 
 
-# tobs -> calc previous year w/ time delta
-#           -> calc out your measurements for 1 station over previous year
 @app.route("/tobs")
 def tobs():
     session = Session(engine)
@@ -125,45 +115,56 @@ def tobs():
     return jsonify(resultlist)
 
     
-@app.route("/start")
-def start():
+@app.route("/api/v1.0/<start>")
+def start(start):
     session = Session(engine)
-    last12mo = dt.date(2017,8,23) - dt.timedelta(days = 365)
-    sel_list = [
-        measurement.date,
-        session.query(func.min(measurement.tobs)),
-        session.query(func.max(measurement.tobs)),
-        session.query(func.avg(measurement.tobs))
-    ]
-    start_aggs = session.query(*sel_list).filter(measurement.station == 'USC00519281').filter(measurement.date >= last12mo).all()
 
-    #start_min = session.query(func.min(measurement.tobs).filter(measurement.station == 'USC00519281').\
-    #                          filter(measurement.date >= last12mo).all()
-    #start_max = session.query(func.max(measurement.tobs).filter(measurement.station == 'USC00519281').\
-    #                          filter(measurement.date >= last12mo).all().all()
-    #start_avg = session.query(func.avg(measurement.tobs).filter(measurement.station == 'USC00519281').\
-    #                          filter(measurement.date >= last12mo).all().all()                            
-                            
+    agg_list = [
+        func.min(measurement.tobs),
+        func.max(measurement.tobs),
+        func.avg(measurement.tobs)
+    ]
+
+    startdate = dt.datetime.strptime(start,"%m%d%Y")
+
+    agg_results = session.query(*agg_list).filter(measurement.date >= startdate).all()
+    
     session.close()
 
-    #for result in resultlist: 
-        #aggsdict = {}
-        #aggsdict= result['tobs']
-        #resultlist.append(aggsdict)
-    return jsonify(start_aggs)
+    temps = list(np.ravel(agg_results))
+    return jsonify(temps)
+
+@app.route("/api/v1.0/<start>/<end>")
+
+def startend(start,end):
+    session = Session(engine)
+    se_aggs = [
+        func.min(measurement.tobs),
+        func.max(measurement.tobs),
+        func.avg(measurement.tobs)
+    ]
+    startday = dt.datetime.strptime(start,"%m%d%Y")
+    endday = dt.datetime.strptime(end,"%m%d%Y")
+
+    se_results = session.query(measurement.date,*se_aggs).filter(measurement.date >= startday).\
+                                                          filter(measurement.date <= endday).group_by(measurement.date)
+  
+    session.close()
+  
+    final_data = []
+
+    for result in se_results:
+        (dates, mins, maxs, avgs) = result
+        resultsdict = {}
+        resultsdict["Date"] = dates
+        resultsdict["Min"] = mins
+        resultsdict["Max"] = maxs
+        resultsdict["Avgs"] = avgs
+        final_data.append(resultsdict)
+
+    return jsonify(final_data)
 
 
-
-
-
-# combine start date (first variable) & start&end date (also variables)
-    #     -> have func called to aggs (min, max, avg) of tobs 
-    #    -> run query taht gets results 
-    #   -> jsonify and display as return 
-
-# start&end query might be a little tough 
-
-#reference app.py 
 
 if __name__ == "__main__":
     app.run(debug=True) 
