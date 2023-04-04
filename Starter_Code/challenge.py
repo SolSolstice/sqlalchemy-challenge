@@ -30,7 +30,6 @@ station = base.classes.station
 session = Session(engine)
 
 # Save references to each table
-app = Flask(__name__)
 
 # Create our session (link) from Python to the DB
 
@@ -40,6 +39,9 @@ app = Flask(__name__)
 #################################################
 app = Flask(__name__)
 
+
+last12mo = dt.date(2017,8,23) - dt.timedelta(days = 365)
+sel_list = [measurement.date,measurement.prcp] 
 #main home-> query for precip,station,tobs, starting day for tobs, starting & ending dates for tobs 
 # starting & ending dates -> form of sttring . mm - dd -yyyy
 @app.route("/")   
@@ -54,7 +56,9 @@ def home():
             f"/temperatures observed<br>"
             f"/start & end<br>"
             )
-#last12mo = dt.date(2017,8,23) - dt.timedelta(days = 365)
+
+#results = session.query(measurement.date,measurement.prcp).filter(measurement.date >= last12mo).all()
+
 #percep_12mo = session.query(measurement.date,measurement.prcp).filter(measurement.date >= last12mo)
 
 
@@ -62,18 +66,21 @@ def home():
 # preciptation route -> route that calcs tobs from prev year 
     #                   -> jsonify results & display as return
 @app.route("/precipitation")
-def precip():
-    session = Session(engine)
-    last12mo = dt.date(2017,8,23) - dt.timedelta(days = 365)
 
-    results = session.query(measurement.date,measurement.prcp).filter(measurement.date >= last12mo).all()
-    resultlist = []
-    for result in results:
-        precipdict = {}
-        precipdict["date"] = result["date"]
-        precipdict["prcp"] = result["prcp"]
-        resultlist.append(precipdict)
-        return jsonify(precipdict)
+
+def precip():
+    return sel_list
+   # session = Session(engine)
+   # last12mo = dt.date(2017,8,23) - dt.timedelta(days = 365)
+
+   # results = session.query(measurement.date,measurement.prcp).filter(measurement.date >= last12mo).all()
+   # resultlist = []
+   # for result in results:
+   #     precipdict = {}
+   #     precipdict["date"] = result["date"]
+   #     precipdict["prcp"] = result["prcp"]
+   #     resultlist.append(precipdict)
+   #     return jsonify(precipdict)
 
  
 
