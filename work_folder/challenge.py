@@ -59,7 +59,7 @@ def home():
 
 
 
-@app.route("/precipitation")
+@app.route("/api/v1.0/precipitation")
 
 def precip():
 
@@ -81,7 +81,7 @@ def precip():
 
 # ====== station info route ======
 
-@app.route("/stations")
+@app.route("/api/v1.0/stations")
 
 def stations():
     session = Session(engine)
@@ -92,7 +92,7 @@ def stations():
 
 
 # ====== temperatures observed route =====
-@app.route("/tobs")
+@app.route("/api/v1.0/tobs")
 def tobs():
     session = Session(engine)
 
