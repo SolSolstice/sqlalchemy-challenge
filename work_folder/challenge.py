@@ -49,12 +49,11 @@ def home():
     return (f"Welcome to Matthew's Challenge-10 page. You are home!<br>"
             f"Current Routes:<br>"
             f"/<br>"
-            f"/precipitation<br>"
-            f"/stations<br>"
-            f"/temperatures observed<br>"
+            f"/api/v1.0/precipitation<br>"
+            f"/api/v1.0/stations<br>"
+            f"/api/v1.0/temperatures observed<br>"
             f"/api/v1.0/start<br>"
-            f"/start/end<br>"
-            f""
+            f"/api/v1.0/start/end<br>"
             )
 
 
